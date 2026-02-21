@@ -1,70 +1,100 @@
-const users = [
-{ id: 1, name: "Anna", age: 22, city: "Moscow", isActive: true },
-{ id: 2, name: "Oleg", age: 17, city: "Kazan", isActive: false },
-{ id: 3, name: "Ivan", age: 30, city: "Moscow", isActive: true },
-{ id: 4, name: "Maria", age: 25, city: "Sochi", isActive: false }
-] 
+let expenses = []
+let idCounter = 1
 
-function getActiveUsers(users){
-    var i = 0;
-    var ActiveUsers = []
-    while(i < users.length){
-        if(users[i].isActive == true){
-            ActiveUsers.push(users[i])
+function addExpense(title, amount, category){
+    if(title == "" || category == "" || amount <= 0){
+        console.log("Некорректный ввод")
+        return
+    }
+    let expense = {
+        id: idCounter,
+        title: title,
+        amount: amount,
+        category: category
+    }
+    idCounter = idCounter + 1
+    expenses.push(expense)
+}
+
+function printAllExpenses(){
+    if(expenses.length == 0){
+        console.log("Список пуст")
+        return
+    }
+    console.log("Все расходы:")
+    for(let i = 0; i < expenses.length; i++){
+        console.log("ID: " + expenses[i].id + " | Название: " + expenses[i].title + " | Сумма: " + expenses[i].amount + " | Категория: " + expenses[i].category)
+    }
+}
+
+function getTotalAmount(){
+    let total = 0
+    for(let i = 0; i < expenses.length; i++){
+        total = total + expenses[i].amount
+    }
+    console.log("Общая сумма расходов: " + total)
+    return total
+}
+
+function getExpensesByCategory(category){
+    let total = 0
+    console.log("Категория: " + category)
+    for(let i = 0; i < expenses.length; i++){
+        if(expenses[i].category == category){
+            console.log(expenses[i])
+            total = total + expenses[i].amount
         }
-        i+=1
     }
-    return(ActiveUsers);
+    console.log("Итого по категории: " + total)
+    return total
 }
-const getUserNames = (users) => {
-  let names = []
-  for (let i = 0; i < users.length; i++) {
-    names.push(users[i].name)
-  }
-  return names;
-}
-function findUserById(users, id) {
-    for(let i = 0; i < users.length; i++){
-       if(users[i].id === users[id].id){
-        return (users[id])
-       }
-    }
-    return (null)
-}
-function getUsersStatistics(users){
-    UsersStatistics = {total: users.length, active: 0, inactive: 0}
-    for(let i = 0; i < users.length; i++){
-        if(users[i].isActive){
-            UsersStatistics.active++
-        }else {
-            UsersStatistics.inactive++
+
+function findExpenseByTitle(text){
+    for(let i = 0; i < expenses.length; i++){
+        if(expenses[i].title.indexOf(text) != -1){
+            console.log("Найдено:")
+            console.log(expenses[i])
+            return expenses[i]
         }
     }
+    console.log("Не найдено")
+    return null
 }
-function getAverageAge(users){
-    let count = 0
-    for(let i = 0; users.length; i++){
-        count += users[i].age        
+
+function deleteExpenseById(id){
+    for(let i = 0; i < expenses.length; i++){
+        if(expenses[i].id == id){
+            expenses.splice(i, 1)
+            console.log("Удалено")
+            return
+        }
     }
-    return (count / users.length)
+    console.log("ID не найден")
 }
-function groupUsersByCity(users) {
-    let result = {};
-    for (let i = 0; i < users.length; i++) {
-    const city = users[i].city;
-    if (!result[city]) {
-      result[city] = [];
+
+function printCategoryStats(){
+    let stats = {}
+    for(let i = 0; i < expenses.length; i++){
+        let cat = expenses[i].category
+        if(stats[cat] == undefined){
+            stats[cat] = 0
+        }
+        stats[cat] = stats[cat] + expenses[i].amount
     }
-    result[city].push(users[i]);
-  }
-  return result;
+    console.log("Статистика по категориям:")
+    for(let key in stats){
+        console.log(key + ": " + stats[key])
+    }
 }
 
-console.log(getUserNames(users));
-console.log(findUserById(users, 2));
-console.log( getUsersStatistics(users));
-console.log(getAverageAge(users));
-console.log(groupUsersByCity(users));
+addExpense("Продукты", 1200, "Еда")
+addExpense("Такси", 600, "Транспорт")
+addExpense("Кофе", 300, "Еда")
 
-
-
+printAllExpenses()
+getTotalAmount()
+getExpensesByCategory("Еда")
+findExpenseByTitle("Так")
+deleteExpenseById(2)
+printAllExpenses()
+printCategoryStats()
