@@ -1,100 +1,119 @@
-let expenses = []
-let idCounter = 1
+const STORAGE_KEY = 'melstroy_tasks';
+const statuses = ['pfuuu', 'choto', 'davai', 'letsgo'];
+const statusLabels = {
+    'pfuuu': 'пфууууу',
+    'choto': 'ну чото чото',
+    'davai': 'ДАВАЙ ДАВАЙ',
+    'letsgo': 'юхуууу летсгоууу'
+};
 
-function addExpense(title, amount, category){
-    if(title == "" || category == "" || amount <= 0){
-        console.log("Некорректный ввод")
-        return
+let tasks = [];
+
+function loadTasks() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    tasks = raw ? JSON.parse(raw) : [];
+}
+
+function saveTasks() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function showNotification(text, isError = false) {
+    const notif = document.getElementById('notification');
+    notif.textContent = text;
+    notif.style.display = 'block';
+    notif.style.background = isError ? '#3a2020' : '#22223b';
+    notif.style.borderColor = isError ? '#e57373' : '#f9a825';
+    setTimeout(() => { notif.style.display = 'none'; }, 3000);
+}
+
+function addTask() {
+    const titleEl = document.getElementById('taskTitle');
+    const title = titleEl.value.trim();
+    if (!title) {
+        showNotification('Введи название задачи', true);
+        return;
     }
-    let expense = {
-        id: idCounter,
+    const newTask = {
+        id: Date.now().toString(),
         title: title,
-        amount: amount,
-        category: category
-    }
-    idCounter = idCounter + 1
-    expenses.push(expense)
+        status: 'pfuuu'
+    };
+    tasks.push(newTask);
+    saveTasks();
+    titleEl.value = '';
+    renderBoard();
+    showNotification('Задача добавлена');
 }
 
-function printAllExpenses(){
-    if(expenses.length == 0){
-        console.log("Список пуст")
-        return
-    }
-    console.log("Все расходы:")
-    for(let i = 0; i < expenses.length; i++){
-        console.log("ID: " + expenses[i].id + " | Название: " + expenses[i].title + " | Сумма: " + expenses[i].amount + " | Категория: " + expenses[i].category)
-    }
-}
-
-function getTotalAmount(){
-    let total = 0
-    for(let i = 0; i < expenses.length; i++){
-        total = total + expenses[i].amount
-    }
-    console.log("Общая сумма расходов: " + total)
-    return total
-}
-
-function getExpensesByCategory(category){
-    let total = 0
-    console.log("Категория: " + category)
-    for(let i = 0; i < expenses.length; i++){
-        if(expenses[i].category == category){
-            console.log(expenses[i])
-            total = total + expenses[i].amount
-        }
-    }
-    console.log("Итого по категории: " + total)
-    return total
-}
-
-function findExpenseByTitle(text){
-    for(let i = 0; i < expenses.length; i++){
-        if(expenses[i].title.indexOf(text) != -1){
-            console.log("Найдено:")
-            console.log(expenses[i])
-            return expenses[i]
-        }
-    }
-    console.log("Не найдено")
-    return null
-}
-
-function deleteExpenseById(id){
-    for(let i = 0; i < expenses.length; i++){
-        if(expenses[i].id == id){
-            expenses.splice(i, 1)
-            console.log("Удалено")
-            return
-        }
-    }
-    console.log("ID не найден")
-}
-
-function printCategoryStats(){
-    let stats = {}
-    for(let i = 0; i < expenses.length; i++){
-        let cat = expenses[i].category
-        if(stats[cat] == undefined){
-            stats[cat] = 0
-        }
-        stats[cat] = stats[cat] + expenses[i].amount
-    }
-    console.log("Статистика по категориям:")
-    for(let key in stats){
-        console.log(key + ": " + stats[key])
+function moveTask(id, newStatus) {
+    const task = tasks.find(t => t.id === id);
+    if (task && task.status !== newStatus) {
+        task.status = newStatus;
+        saveTasks();
+        renderBoard();
+        showNotification(`Статус → ${statusLabels[newStatus]}`);
     }
 }
 
-addExpense("Продукты", 1200, "Еда")
-addExpense("Такси", 600, "Транспорт")
-addExpense("Кофе", 300, "Еда")
+function getFilteredTasks() {
+    const filter = document.getElementById('filterInput').value.trim().toLowerCase();
+    if (!filter) return tasks;
+    return tasks.filter(t => t.title.toLowerCase().includes(filter));
+}
 
-printAllExpenses()
-getTotalAmount()
-getExpensesByCategory("Еда")
-findExpenseByTitle("Так")
-deleteExpenseById(2)
-printAllExpenses()
-printCategoryStats()
+function renderBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    const filtered = getFilteredTasks();
+
+    statuses.forEach(status => {
+        const col = document.createElement('div');
+        col.className = 'column';
+        col.setAttribute('data-status', status);
+        const count = filtered.filter(t => t.status === status).length;
+        col.innerHTML = `<h3>${statusLabels[status]} (${count})</h3>`;
+
+        col.addEventListener('dragover', e => {
+            e.preventDefault();
+            col.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', () => {
+            col.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', e => {
+            e.preventDefault();
+            col.classList.remove('drag-over');
+            const id = e.dataTransfer.getData('text/plain');
+            moveTask(id, status);
+        });
+
+        filtered.filter(t => t.status === status).forEach(task => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.draggable = true;
+            card.setAttribute('data-id', task.id);
+            card.textContent = task.title;
+            card.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', task.id);
+                card.classList.add('dragging');
+            });
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+            });
+            col.appendChild(card);
+        });
+
+        board.appendChild(col);
+    });
+
+    document.getElementById('taskCounter').textContent = tasks.length;
+}
+
+document.getElementById('addBtn').addEventListener('click', addTask);
+document.getElementById('filterInput').addEventListener('input', renderBoard);
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTasks();
+    renderBoard();
+});
